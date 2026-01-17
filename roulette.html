@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Roulette</title>
+
+<style>
+:root {
+  --bg: #0b0f14;
+  --panel: #121826;
+  --border: #1e2538;
+  --text: #e6ebff;
+  --muted: #8b94b8;
+  --green: #2bdc9d;
+  --red: #e05252;
+  --black: #2a2a2a;
+  --bait: linear-gradient(135deg,#4c7dff,#8f5bff);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+}
+
+#roulette-wrapper {
+  padding: 24px;
+}
+
+/* HISTORY */
+#history {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.history-tile {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-size: cover;
+  opacity: .85;
+}
+
+/* WHEEL */
+#wheel-viewport {
+  position: relative;
+  height: 84px;
+  overflow: hidden;
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+#wheel {
+  display: flex;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.tile {
+  width: 84px;
+  height: 84px;
+  background-size: cover;
+}
+
+.red { background-image: url("redtile.png"); }
+.black { background-image: url("blacktile.png"); }
+.green { background-image: url("greentile.png"); }
+.bait { background-image: url("baittile.png"); }
+
+#pointer {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--green);
+  transform: translateX(-1px);
+}
+
+/* TIMER */
+#timer {
+  text-align: center;
+  margin: 12px 0 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* BETS */
+#bets {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 14px;
+}
+
+.bet {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.bet:hover {
+  transform: translateY(-2px);
+}
+
+.bet.red { border-bottom: 4px solid var(--red); }
+.bet.black { border-bottom: 4px solid #444; }
+.bet.green { border-bottom: 4px solid var(--green); }
+.bet.bait { border-bottom: 4px solid #7f6bff; }
+
+.bet-title {
+  font-size: 13px;
+  opacity: .8;
+}
+
+.bet-multi {
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+/* BALANCE */
+#balance {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+</style>
+</head>
+
+<body>
+
+<div id="roulette-wrapper">
+
+  <div id="history"></div>
+
+  <div id="wheel-viewport">
+    <div id="wheel"></div>
+    <div id="pointer"></div>
+  </div>
+
+  <div id="timer">Rolling in <span id="time">15.00</span></div>
+
+  <div id="bets">
+    <div class="bet red" data-bet="red">
+      <div class="bet-title">PLACE BET</div>
+      <div class="bet-multi">x2.1</div>
+    </div>
+    <div class="bet green" data-bet="green">
+      <div class="bet-title">PLACE BET</div>
+      <div class="bet-multi">x14.7</div>
+    </div>
+    <div class="bet bait" data-bet="bait">
+      <div class="bet-title">PLACE BET</div>
+      <div class="bet-multi">x7.0</div>
+    </div>
+    <div class="bet black" data-bet="black">
+      <div class="bet-title">PLACE BET</div>
+      <div class="bet-multi">x2.1</div>
+    </div>
+  </div>
+
+  <div id="balance">Balance: <span id="bal">100.00</span></div>
+
+</div>
+
+<script>
+const GENESIS = 1700000000000;
+const ROUND_MS = 15000;
+const TILE_W = 84;
+const TILES = 200;
+
+let balance = 100;
+let bet = null;
+
+const wheel = document.getElementById("wheel");
+const timeEl = document.getElementById("time");
+const balEl = document.getElementById("bal");
+const history = document.getElementById("history");
+
+function rand(seed) {
+  return Math.abs(Math.sin(seed * 9999)) % 1;
+}
+
+function outcome(round) {
+  const r = rand(round);
+  if (r < .03) return "green";
+  if (r < .06) return "bait";
+  if (r < .53) return "red";
+  return "black";
+}
+
+function build() {
+  wheel.innerHTML = "";
+  for (let i=0;i<TILES;i++) {
+    const d = document.createElement("div");
+    const r = rand(i);
+    d.className = "tile " + (
+      r < .03 ? "green" :
+      r < .06 ? "bait" :
+      r < .53 ? "red" : "black"
+    );
+    wheel.appendChild(d);
+  }
+}
+
+build();
+
+document.querySelectorAll(".bet").forEach(b=>{
+  b.onclick = ()=>{
+    bet = b.dataset.bet;
+  };
+});
+
+let lastRound = -1;
+
+function loop() {
+  const now = Date.now();
+  const round = Math.floor((now-GENESIS)/ROUND_MS);
+  const left = ROUND_MS - ((now-GENESIS)%ROUND_MS);
+  timeEl.textContent = (left/1000).toFixed(2);
+
+  if (round !== lastRound) {
+    lastRound = round;
+    const res = outcome(round);
+    spin(res);
+    settle(res);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function spin(res) {
+  const tiles = [...wheel.children];
+  const idx = tiles.findIndex(t=>t.classList.contains(res));
+  const offset = idx*TILE_W - window.innerWidth/2 + TILE_W/2;
+  wheel.style.transition = "none";
+  wheel.style.transform = "translateX(0)";
+  requestAnimationFrame(()=>{
+    wheel.style.transition = "transform 5s cubic-bezier(.15,.85,.25,1)";
+    wheel.style.transform = `translateX(-${offset}px)`;
+  });
+
+  const h = document.createElement("div");
+  h.className = "history-tile "+res;
+  history.prepend(h);
+  if (history.children.length>12) history.lastChild.remove();
+}
+
+function settle(res) {
+  if (!bet) return;
+  const multi = res==="green"?14.7:res==="bait"?7:2.1;
+  if (bet===res) balance += 10*multi;
+  else balance -= 10;
+  balEl.textContent = balance.toFixed(2);
+  bet = null;
+}
+
+loop();
+</script>
+
+</body>
+</html>
