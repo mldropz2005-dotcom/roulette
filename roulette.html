@@ -69,11 +69,19 @@
       box-shadow: var(--shadow);
     }
     .nav{
-      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      gap:14px;
     }
     .nav-right{
       display:flex; align-items:center; gap:10px;
       color:var(--muted); font-size:13px; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .nav-center{
+      display:flex;
+      justify-content:center;
     }
     .pill{
       padding:8px 10px; border-radius:999px;
@@ -276,6 +284,7 @@
       border: 1px solid rgba(255,255,255,.06);
       background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
       background-color: rgba(9,13,20,.55);
+      --green-outline: 0;
     }
 
     .wheel-track{
@@ -307,6 +316,16 @@
       content:"";
       position:absolute; inset:-20px;
       background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.10), transparent 55%);
+      pointer-events:none;
+    }
+    .tile.green::before{
+      content:"";
+      position:absolute;
+      inset: 6px;
+      border-radius: 10px;
+      border: 2px solid rgba(41,227,164, calc(.15 + (var(--green-outline) * .65)));
+      transform: scale(calc(.65 + (var(--green-outline) * .35)));
+      box-shadow: 0 0 18px rgba(41,227,164, calc(.2 + (var(--green-outline) * .4)));
       pointer-events:none;
     }
 
@@ -662,11 +681,7 @@
         <div class="dot"></div>
         <div>369CREW</div>
       </div>
-      <div class="nav-right">
-        <div class="pill">Games</div>
-        <div class="pill">Battles</div>
-        <div class="pill">Rewards</div>
-        <div class="pill">Marketplace</div>
+      <div class="nav-center">
         <div class="balance-pill">
           <span id="balance">$100.00</span>
           <button class="wallet-btn" id="walletBtn" aria-label="Open wallet">
@@ -677,6 +692,12 @@
             </svg>
           </button>
         </div>
+      </div>
+      <div class="nav-right">
+        <div class="pill">Games</div>
+        <div class="pill">Battles</div>
+        <div class="pill">Rewards</div>
+        <div class="pill">Marketplace</div>
       </div>
     </div>
   </header>
@@ -834,8 +855,8 @@
   // How long the spin animation lasts (ms)
   const SPIN_MS = 5200;
 
-  // Conveyor belt window size
-  const WINDOW_TILES = 15;
+  // How long the winning tile stays centered before resetting (ms)
+  const RESET_MS = 700;
 
   // Wheel layout: 15 tiles, even red/black, 1 green, 2 baits (one red, one black).
   const WHEEL_TILES = [
@@ -855,6 +876,10 @@
     "red",
     "black"
   ];
+  const TOTAL_TILES = WHEEL_TILES.length;
+  const REPEAT_COUNT = 8;
+  const LOOP_TILES = TOTAL_TILES * REPEAT_COUNT;
+  const GREEN_INDEX = WHEEL_TILES.indexOf("green");
 
   function outcomeFromTile(type){
     if (type === "bait-red" || type === "bait-black") return "bait";
@@ -863,20 +888,15 @@
 
   const MULTI = { red: 2.1, black: 2.1, green: 14.7, bait: 7.0 };
 
-  // "Hidden genesis" - not displayed; lightly obfuscated.
-  // Anyone inspecting can still find it (client-side limitation), but we don't show it in UI.
-  const GENESIS = (() => {
-    const a = "MTcw";          // base64-ish fragments (not real base64 decode on purpose)
-    const b = 1700000000;      // seconds
-    const c = 997;             // ms offset
-    return (b * 1000) + c;     // 1700000000997
-  })();
-
   // ---------------------------
   // STATE
   // ---------------------------
   let balance = 100.00;
   let lastBetAmount = 1.00;
+  let roundIndex = 0;
+  let state = "countdown";
+  let countdownStart = performance.now();
+  let timeLeftMs = ROUND_MS;
 
   // betSlip holds current round's bet (single bet like screenshot UX)
   let betSlip = null; // { type, amount, roundIndex }
@@ -1006,23 +1026,14 @@
     return Math.abs(s) % 1;
   }
 
-  function roundIndexAt(t){
-    return Math.floor((t - GENESIS) / ROUND_MS);
-  }
-
-  function timeLeftMs(t){
-    const elapsed = (t - GENESIS) % ROUND_MS;
-    return ROUND_MS - (elapsed < 0 ? (elapsed + ROUND_MS) : elapsed);
-  }
-
   function outcomeForRound(rIdx){
-    const tileIndex = Math.floor(seeded01(rIdx + 1337) * WINDOW_TILES);
+    const tileIndex = Math.floor(seeded01(rIdx + 1337) * TOTAL_TILES);
     const tileType = WHEEL_TILES[tileIndex];
     return { tileIndex, tileType, outcome: outcomeFromTile(tileType) };
   }
 
-  function buildWindowForRound(tileIndex){
-    return { tiles: WHEEL_TILES.slice(), winAt: tileIndex };
+  function buildLoopTiles(){
+    return Array.from({ length: LOOP_TILES }, (_, i) => WHEEL_TILES[i % TOTAL_TILES]);
   }
 
   function detectMissingImages(){
@@ -1164,12 +1175,11 @@
   // Betting
   // ---------------------------
   function tryPlaceBet(type){
-    const now = Date.now();
-    const rIdx = roundIndexAt(now);
-    const left = timeLeftMs(now);
+    const rIdx = roundIndex;
+    const left = timeLeftMs;
 
     // lock bets near the end (like real sites do)
-    if (left < 1200){
+    if (state !== "countdown" || left < 1200){
       setToast("Too late — betting closed for this round.", "bad");
       return;
     }
@@ -1204,9 +1214,10 @@
   // ---------------------------
   // Roulette spin (conveyor)
   // ---------------------------
-  let currentRound = null;
   let spinning = false;
   let tileMissing = { red:false, black:false, green:false, bait:false };
+  let trackTiles = buildLoopTiles();
+  let currentIndex = GREEN_INDEX + (TOTAL_TILES * Math.floor(REPEAT_COUNT / 2));
 
   function applyFallbackClasses(){
     // wheel tiles
@@ -1232,26 +1243,35 @@
     applyFallbackClasses();
   }
 
-  function animateToWin(winAt){
-    // compute exact translateX so that winAt tile aligns under pointer at center
-    const vw = viewport.clientWidth;
+  function tileStep(){
     const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 78;
     const margin = 8; // each tile has margin 0 4 => total 8
-    const step = tileW + margin;
+    return tileW + margin;
+  }
 
-    const centerOffset = (vw / 2) - (tileW / 2);
-    const targetX = (winAt * step) - centerOffset;
+  function centerOffset(){
+    const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 78;
+    return (viewport.clientWidth / 2) - (tileW / 2);
+  }
 
-    // start from a small offset to feel like it was already rolling
-    const preRoll = targetX - (step * (18 + Math.floor(seeded01(currentRound + 999) * 10)));
+  function offsetForIndex(index){
+    return (index * tileStep()) - centerOffset();
+  }
 
+  function setTrackPosition(index){
     track.style.transition = "none";
-    track.style.transform = `translate3d(-${Math.max(0, preRoll)}px,0,0)`;
-    // force layout
-    track.getBoundingClientRect();
+    track.style.transform = `translate3d(-${offsetForIndex(index)}px,0,0)`;
+  }
 
+  function animateToIndex(targetIndex){
+    // compute exact translateX so that winAt tile aligns under pointer at center
     track.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.12,.86,.18,1)`;
-    track.style.transform = `translate3d(-${targetX}px,0,0)`;
+    track.style.transform = `translate3d(-${offsetForIndex(targetIndex)}px,0,0)`;
+  }
+
+  function alignToGreen(){
+    currentIndex = GREEN_INDEX + (TOTAL_TILES * Math.floor(REPEAT_COUNT / 2));
+    setTrackPosition(currentIndex);
   }
 
   function settleRound(rIdx, winType, tileType){
@@ -1276,55 +1296,61 @@
   // ---------------------------
   // Main loop
   // ---------------------------
-  function frame(){
-    const now = Date.now();
-    const rIdx = roundIndexAt(now);
+  function startCountdown(){
+    countdownStart = performance.now();
+    state = "countdown";
+    renderBetLists(roundIndex);
+  }
 
-    // timer display
-    const left = timeLeftMs(now);
-    timerEl.textContent = (left / 1000).toFixed(2);
+  function startSpin(){
+    state = "spinning";
+    spinning = true;
 
-    if (currentRound === null){
-      currentRound = rIdx;
-      renderBetLists(rIdx);
-      // preload a static state
-      const { tileIndex, tileType } = outcomeForRound(rIdx);
-      const { tiles, winAt } = buildWindowForRound(tileIndex);
-      buildTrack(tiles);
-      // place it already centered (no animation yet)
-      const vw = viewport.clientWidth;
-      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 78;
-      const margin = 8;
-      const step = tileW + margin;
-      const centerOffset = (vw / 2) - (tileW / 2);
-      const targetX = (winAt * step) - centerOffset;
-      track.style.transition = "none";
-      track.style.transform = `translate3d(-${targetX}px,0,0)`;
+    const { tileIndex, tileType, outcome } = outcomeForRound(roundIndex);
+    const baseLoop = Math.floor(currentIndex / TOTAL_TILES);
+    let targetIndex = tileIndex + TOTAL_TILES * (baseLoop + 2 + Math.floor(seeded01(roundIndex + 999) * 2));
+
+    if (targetIndex >= LOOP_TILES - TOTAL_TILES){
+      trackTiles = buildLoopTiles();
+      buildTrack(trackTiles);
+      alignToGreen();
+      const resetLoop = Math.floor(currentIndex / TOTAL_TILES);
+      targetIndex = tileIndex + TOTAL_TILES * (resetLoop + 2);
     }
 
-    // start spinning at the start of a new round
-    if (rIdx !== currentRound && !spinning){
-      spinning = true;
+    requestAnimationFrame(() => {
+      animateToIndex(targetIndex);
+    });
 
-      // lock to new round
-      currentRound = rIdx;
-      renderBetLists(rIdx);
+    setTimeout(() => {
+      settleRound(roundIndex, outcome, tileType);
+      currentIndex = targetIndex;
+      state = "settled";
+      spinning = false;
 
-      const { tileIndex, tileType, outcome } = outcomeForRound(rIdx);
-      const { tiles, winAt } = buildWindowForRound(tileIndex);
-      buildTrack(tiles);
-
-      // animate
-      requestAnimationFrame(() => {
-        animateToWin(winAt);
-      });
-
-      // settle after spin ends
       setTimeout(() => {
-        settleRound(rIdx, outcome, tileType);
-        // keep the track in its final position; next round rebuilds anyway
-        spinning = false;
-      }, SPIN_MS + 30);
+        alignToGreen();
+        roundIndex += 1;
+        startCountdown();
+      }, RESET_MS);
+    }, SPIN_MS + 30);
+  }
+
+  function frame(){
+    const now = performance.now();
+
+    if (state === "countdown"){
+      timeLeftMs = Math.max(0, ROUND_MS - (now - countdownStart));
+      const progress = 1 - (timeLeftMs / ROUND_MS);
+      viewport.style.setProperty("--green-outline", progress.toFixed(3));
+      timerEl.textContent = (timeLeftMs / 1000).toFixed(2);
+
+      if (timeLeftMs <= 0 && !spinning){
+        startSpin();
+      }
+    } else if (state === "spinning" || state === "settled"){
+      timerEl.textContent = "0.00";
+      viewport.style.setProperty("--green-outline", "1");
     }
 
     requestAnimationFrame(frame);
@@ -1332,8 +1358,7 @@
 
   // start with a bit of history so it doesn't look empty
   (function seedHistory(){
-    const now = Date.now();
-    const base = roundIndexAt(now);
+    const base = roundIndex - 1;
     for (let i=0;i<12;i++){
       const { tileType } = outcomeForRound(base - i);
       history.push(tileType);
@@ -1358,8 +1383,11 @@
       green: !ok.green,
       bait: !ok.bait
     };
+    buildTrack(trackTiles);
+    alignToGreen();
     applyFallbackClasses();
     updateBalanceDisplay();
+    startCountdown();
     frame();
   });
 
