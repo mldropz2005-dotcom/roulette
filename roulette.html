@@ -58,15 +58,15 @@
       padding: 14px 18px;
     }
     .brand{
-      display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.4px;
+      display:flex; align-items:center;
     }
-    .dot{
-      width:34px; height:34px; border-radius:10px;
-      background: radial-gradient(circle at 30% 20%, rgba(41,227,164,.35), transparent 60%),
-                  radial-gradient(circle at 70% 80%, rgba(143,91,255,.35), transparent 60%),
-                  rgba(255,255,255,.05);
+    .brand img{
+      width:44px;
+      height:44px;
+      border-radius: 12px;
       border:1px solid rgba(255,255,255,.08);
       box-shadow: var(--shadow);
+      background: rgba(255,255,255,.04);
     }
     .nav{
       display:grid;
@@ -678,8 +678,7 @@
   <header class="site-header">
     <div class="wrap nav">
       <div class="brand">
-        <div class="dot"></div>
-        <div>369CREW</div>
+        <img src="logo.png" alt="369CREW logo" />
       </div>
       <div class="nav-center">
         <div class="balance-pill">
@@ -853,7 +852,7 @@
   const ROUND_MS = 15000;
 
   // How long the spin animation lasts (ms)
-  const SPIN_MS = 5200;
+  const SPIN_MS = 6400;
 
   // How long the winning tile stays centered before resetting (ms)
   const RESET_MS = 700;
@@ -895,8 +894,15 @@
   let lastBetAmount = 1.00;
   let roundIndex = 0;
   let state = "countdown";
-  let countdownStart = performance.now();
   let timeLeftMs = ROUND_MS;
+  let settleAt = 0;
+  let resetAt = 0;
+  let pendingOutcome = null;
+  let pendingTileType = null;
+  let pendingRound = null;
+
+  // Sync all clients to the same UNIX timestamp for countdown + results.
+  const GENESIS = 1700000000000;
 
   // betSlip holds current round's bet (single bet like screenshot UX)
   let betSlip = null; // { type, amount, roundIndex }
@@ -1017,6 +1023,15 @@
 
   function updateBalanceDisplay(){
     balanceEl.textContent = formatMoney(balance);
+  }
+
+  function roundIndexAt(t){
+    return Math.floor((t - GENESIS) / ROUND_MS);
+  }
+
+  function timeLeftAt(t){
+    const elapsed = (t - GENESIS) % ROUND_MS;
+    return ROUND_MS - (elapsed < 0 ? (elapsed + ROUND_MS) : elapsed);
   }
 
   // Deterministic "random" in [0,1)
@@ -1296,61 +1311,69 @@
   // ---------------------------
   // Main loop
   // ---------------------------
-  function startCountdown(){
-    countdownStart = performance.now();
-    state = "countdown";
-    renderBetLists(roundIndex);
-  }
-
-  function startSpin(){
+  function beginSpin(targetIndex){
     state = "spinning";
     spinning = true;
-
-    const { tileIndex, tileType, outcome } = outcomeForRound(roundIndex);
-    const baseLoop = Math.floor(currentIndex / TOTAL_TILES);
-    let targetIndex = tileIndex + TOTAL_TILES * (baseLoop + 2 + Math.floor(seeded01(roundIndex + 999) * 2));
-
-    if (targetIndex >= LOOP_TILES - TOTAL_TILES){
-      trackTiles = buildLoopTiles();
-      buildTrack(trackTiles);
-      alignToGreen();
-      const resetLoop = Math.floor(currentIndex / TOTAL_TILES);
-      targetIndex = tileIndex + TOTAL_TILES * (resetLoop + 2);
-    }
 
     requestAnimationFrame(() => {
       animateToIndex(targetIndex);
     });
-
-    setTimeout(() => {
-      settleRound(roundIndex, outcome, tileType);
-      currentIndex = targetIndex;
-      state = "settled";
-      spinning = false;
-
-      setTimeout(() => {
-        alignToGreen();
-        roundIndex += 1;
-        startCountdown();
-      }, RESET_MS);
-    }, SPIN_MS + 30);
   }
 
   function frame(){
-    const now = performance.now();
+    const now = Date.now();
+    const nextRoundIndex = roundIndexAt(now);
+    const left = timeLeftAt(now);
+    const progress = 1 - (left / ROUND_MS);
 
     if (state === "countdown"){
-      timeLeftMs = Math.max(0, ROUND_MS - (now - countdownStart));
-      const progress = 1 - (timeLeftMs / ROUND_MS);
+      timeLeftMs = left;
       viewport.style.setProperty("--green-outline", progress.toFixed(3));
       timerEl.textContent = (timeLeftMs / 1000).toFixed(2);
 
-      if (timeLeftMs <= 0 && !spinning){
-        startSpin();
+      if (nextRoundIndex !== roundIndex && !spinning){
+        roundIndex = nextRoundIndex;
+        const { tileIndex, tileType, outcome } = outcomeForRound(roundIndex);
+        const baseLoop = Math.floor(currentIndex / TOTAL_TILES);
+        let targetIndex = tileIndex + TOTAL_TILES * (baseLoop + 2 + Math.floor(seeded01(roundIndex + 999) * 2));
+
+        if (targetIndex >= LOOP_TILES - TOTAL_TILES){
+          trackTiles = buildLoopTiles();
+          buildTrack(trackTiles);
+          alignToGreen();
+          const resetLoop = Math.floor(currentIndex / TOTAL_TILES);
+          targetIndex = tileIndex + TOTAL_TILES * (resetLoop + 2);
+        }
+
+        settleAt = now + SPIN_MS;
+        resetAt = settleAt + RESET_MS;
+        pendingOutcome = outcome;
+        pendingTileType = tileType;
+        pendingRound = roundIndex;
+        beginSpin(targetIndex);
+        currentIndex = targetIndex;
       }
-    } else if (state === "spinning" || state === "settled"){
+    } else if (state === "spinning"){
       timerEl.textContent = "0.00";
       viewport.style.setProperty("--green-outline", "1");
+      if (now >= settleAt){
+        if (pendingRound !== null){
+          settleRound(pendingRound, pendingOutcome, pendingTileType);
+          pendingRound = null;
+          pendingOutcome = null;
+          pendingTileType = null;
+        }
+        state = "settled";
+      }
+    } else if (state === "settled"){
+      timerEl.textContent = "0.00";
+      viewport.style.setProperty("--green-outline", "1");
+      if (now >= resetAt){
+        alignToGreen();
+        spinning = false;
+        state = "countdown";
+        renderBetLists(roundIndex);
+      }
     }
 
     requestAnimationFrame(frame);
@@ -1358,7 +1381,8 @@
 
   // start with a bit of history so it doesn't look empty
   (function seedHistory(){
-    const base = roundIndex - 1;
+    const now = Date.now();
+    const base = roundIndexAt(now) - 1;
     for (let i=0;i<12;i++){
       const { tileType } = outcomeForRound(base - i);
       history.push(tileType);
@@ -1387,7 +1411,8 @@
     alignToGreen();
     applyFallbackClasses();
     updateBalanceDisplay();
-    startCountdown();
+    roundIndex = roundIndexAt(Date.now());
+    renderBetLists(roundIndex);
     frame();
   });
 
