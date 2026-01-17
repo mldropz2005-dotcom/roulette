@@ -1,269 +1,1173 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Roulette</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>369crew Roulette</title>
 
-<style>
-:root {
-  --bg: #0b0f14;
-  --panel: #121826;
-  --border: #1e2538;
-  --text: #e6ebff;
-  --muted: #8b94b8;
-  --green: #2bdc9d;
-  --red: #e05252;
-  --black: #2a2a2a;
-  --bait: linear-gradient(135deg,#4c7dff,#8f5bff);
-}
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --top:#0a0e13;
+      --panel:#111827;
+      --panel2:#0f1624;
+      --stroke:#1d2740;
+      --stroke2:#233055;
+      --text:#e7ecff;
+      --muted:#98a3c7;
 
-body {
-  margin: 0;
-  background: var(--bg);
-  font-family: Inter, system-ui, sans-serif;
-  color: var(--text);
-}
+      --green:#29e3a4;
+      --red:#e25555;
+      --black:#2a2f3a;
+      --bait1:#4c7dff;
+      --bait2:#8f5bff;
 
-#roulette-wrapper {
-  padding: 24px;
-}
+      --good:#29e3a4;
+      --bad:#ff5a7a;
 
-/* HISTORY */
-#history {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-.history-tile {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  background-size: cover;
-  opacity: .85;
-}
+      --radius:12px;
+      --radius2:10px;
 
-/* WHEEL */
-#wheel-viewport {
-  position: relative;
-  height: 84px;
-  overflow: hidden;
-  background: var(--panel);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
+      --tile:78px;
+      --wheelH:78px;
 
-#wheel {
-  display: flex;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  will-change: transform;
-}
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
 
-.tile {
-  width: 84px;
-  height: 84px;
-  background-size: cover;
-}
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(41,227,164,.10), transparent 55%),
+                  radial-gradient(900px 500px at 110% 20%, rgba(143,91,255,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
 
-.red { background-image: url("redtile.png"); }
-.black { background-image: url("blacktile.png"); }
-.green { background-image: url("greentile.png"); }
-.bait { background-image: url("baittile.png"); }
+    /* --- DEMO HEADER/FOOTER (replace with your site header/footer; this is neutral) --- */
+    .site-header,.site-footer{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .site-footer{ border-top:1px solid rgba(255,255,255,.06); border-bottom:none; }
+    .wrap{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 18px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.4px;
+    }
+    .dot{
+      width:34px; height:34px; border-radius:10px;
+      background: radial-gradient(circle at 30% 20%, rgba(41,227,164,.35), transparent 60%),
+                  radial-gradient(circle at 70% 80%, rgba(143,91,255,.35), transparent 60%),
+                  rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow: var(--shadow);
+    }
+    .nav{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+    }
+    .nav-right{
+      display:flex; align-items:center; gap:10px;
+      color:var(--muted); font-size:13px;
+    }
+    .pill{
+      padding:8px 10px; border-radius:999px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
 
-#pointer {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  background: var(--green);
-  transform: translateX(-1px);
-}
+    /* --- MAIN LAYOUT --- */
+    .main{
+      max-width:1180px;
+      margin: 0 auto;
+      padding: 18px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
 
-/* TIMER */
-#timer {
-  text-align: center;
-  margin: 12px 0 20px;
-  font-size: 14px;
-  color: var(--muted);
-}
+    .row-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 14px;
+      flex-wrap:wrap;
+    }
 
-/* BETS */
-#bets {
-  display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 14px;
-}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      background-color: rgba(17,24,39,.86);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
 
-.bet {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  cursor: pointer;
-  transition: .15s;
-}
+    .stats{
+      padding: 12px 14px;
+      min-width: 360px;
+      flex: 1;
+    }
 
-.bet:hover {
-  transform: translateY(-2px);
-}
+    .stats h3{
+      margin:0 0 10px 0;
+      font-size: 13px;
+      letter-spacing:.2px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
 
-.bet.red { border-bottom: 4px solid var(--red); }
-.bet.black { border-bottom: 4px solid #444; }
-.bet.green { border-bottom: 4px solid var(--green); }
-.bet.bait { border-bottom: 4px solid #7f6bff; }
+    .last100{
+      display:flex;
+      align-items:center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .mini{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .mini strong{ color:var(--text); font-weight:800; }
 
-.bet-title {
-  font-size: 13px;
-  opacity: .8;
-}
+    .history{
+      display:flex;
+      gap:6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.06);
+      overflow:hidden;
+    }
+    .h-tile{
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 6px 14px rgba(0,0,0,.25);
+      background-size: cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      background-color: rgba(255,255,255,.04);
+    }
 
-.bet-multi {
-  font-size: 20px;
-  margin-top: 6px;
-}
+    .h-red{ background-image:url("redtile.png"); }
+    .h-black{ background-image:url("blacktile.png"); }
+    .h-green{ background-image:url("greentile.png"); }
+    .h-bait{ background-image:url("baittile.png"); }
 
-/* BALANCE */
-#balance {
-  margin-top: 18px;
-  font-size: 14px;
-  color: var(--muted);
-}
-</style>
+    /* fallback if images missing */
+    .h-red.fallback{ background: linear-gradient(180deg, rgba(226,85,85,.35), rgba(226,85,85,.08)); }
+    .h-black.fallback{ background: linear-gradient(180deg, rgba(42,47,58,.9), rgba(42,47,58,.25)); }
+    .h-green.fallback{ background: linear-gradient(180deg, rgba(41,227,164,.35), rgba(41,227,164,.08)); }
+    .h-bait.fallback{ background: linear-gradient(135deg, rgba(76,125,255,.35), rgba(143,91,255,.20)); }
+
+    .jackpot{
+      padding: 12px 14px;
+      min-width: 280px;
+      flex: 0 0 auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+    }
+    .jackpot .label{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+    }
+    .jackpot .val{
+      font-size:16px;
+      font-weight:900;
+      color: var(--green);
+    }
+    .jackpot .icons{
+      display:flex; gap:8px; align-items:center;
+    }
+    .icon{
+      width:34px; height:34px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    /* --- WHEEL --- */
+    .wheel-card{
+      padding: 14px;
+    }
+
+    .wheel-head{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-bottom: 10px;
+      position:relative;
+    }
+
+    .rolling-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border:1px solid rgba(41,227,164,.25);
+      background: linear-gradient(180deg, rgba(41,227,164,.18), rgba(41,227,164,.05));
+      box-shadow: 0 10px 30px rgba(41,227,164,.12);
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .rolling-badge .t{
+      font-size:13px;
+      color: var(--text);
+    }
+    .rolling-badge .time{
+      font-variant-numeric: tabular-nums;
+      color: var(--green);
+      font-size: 14px;
+    }
+
+    .wheel-viewport{
+      position:relative;
+      height: var(--wheelH);
+      overflow:hidden;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      background-color: rgba(9,13,20,.55);
+    }
+
+    .wheel-track{
+      position:absolute;
+      left:0; top:0;
+      height: 100%;
+      display:flex;
+      will-change: transform;
+      transform: translate3d(0,0,0);
+    }
+
+    .tile{
+      width: var(--tile);
+      height: var(--tile);
+      border-radius: 12px;
+      margin: 0 4px;
+      border:1px solid rgba(255,255,255,.10);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: rgba(255,255,255,.04);
+      box-shadow: 0 12px 24px rgba(0,0,0,.22);
+      flex: 0 0 auto;
+      position: relative;
+      overflow:hidden;
+    }
+
+    .tile::after{
+      content:"";
+      position:absolute; inset:-20px;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.10), transparent 55%);
+      pointer-events:none;
+    }
+
+    .tile.red{ background-image:url("redtile.png"); }
+    .tile.black{ background-image:url("blacktile.png"); }
+    .tile.green{ background-image:url("greentile.png"); }
+    .tile.bait{ background-image:url("baittile.png"); }
+
+    /* fallback looks */
+    .tile.red.fallback{ background: linear-gradient(180deg, rgba(226,85,85,.35), rgba(226,85,85,.08)); }
+    .tile.black.fallback{ background: linear-gradient(180deg, rgba(42,47,58,.95), rgba(42,47,58,.30)); }
+    .tile.green.fallback{ background: linear-gradient(180deg, rgba(41,227,164,.35), rgba(41,227,164,.08)); }
+    .tile.bait.fallback{ background: linear-gradient(135deg, rgba(76,125,255,.35), rgba(143,91,255,.22)); }
+
+    .pointer{
+      position:absolute;
+      left:50%;
+      top:-2px;
+      width:2px;
+      height: calc(var(--wheelH) + 4px);
+      transform: translateX(-1px);
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(41,227,164,.10);
+    }
+    .pointer::before,.pointer::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+    }
+    .pointer::before{
+      top: 6px;
+      border-top: 10px solid rgba(41,227,164,.9);
+    }
+    .pointer::after{
+      bottom: 6px;
+      border-bottom: 10px solid rgba(41,227,164,.9);
+    }
+
+    /* --- BET CONTROLS --- */
+    .bet-controls{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      margin-top: 12px;
+      flex-wrap:wrap;
+    }
+    .amount{
+      display:flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(0,0,0,.16);
+      min-width: 260px;
+    }
+    .amount label{
+      font-size:12px;
+      font-weight:900;
+      color:var(--muted);
+      text-transform: uppercase;
+      letter-spacing:.2px;
+    }
+    .amount input{
+      flex:1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-weight: 900;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quick{
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
+    }
+    .qbtn{
+      padding: 9px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .qbtn:hover{ color: var(--text); border-color: rgba(255,255,255,.12); }
+
+    /* --- BET PANELS (4 columns) --- */
+    .bets-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px){
+      .bets-grid{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px){
+      .bets-grid{ grid-template-columns: 1fr; }
+    }
+
+    .bet-card{
+      padding: 12px;
+      border-radius: var(--radius);
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(17,24,39,.82);
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      min-height: 310px;
+    }
+
+    .bet-btn{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.07);
+      cursor:pointer;
+      font-weight: 1000;
+      letter-spacing:.2px;
+      user-select:none;
+    }
+    .bet-btn .left{
+      display:flex; align-items:center; gap: 10px;
+      font-size: 13px;
+    }
+    .chip{
+      width:18px; height:18px;
+      border-radius: 6px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      position: relative;
+      overflow:hidden;
+    }
+    .chip.red{ background: rgba(226,85,85,.25); border-color: rgba(226,85,85,.35); }
+    .chip.black{ background: rgba(42,47,58,.60); border-color: rgba(255,255,255,.12); }
+    .chip.green{ background: rgba(41,227,164,.22); border-color: rgba(41,227,164,.32); }
+    .chip.bait{ background: linear-gradient(135deg, rgba(76,125,255,.35), rgba(143,91,255,.22)); border-color: rgba(143,91,255,.35); }
+
+    .bet-btn .mult{ font-size: 12px; opacity:.9; }
+    .bet-btn.red{ background: linear-gradient(180deg, rgba(226,85,85,.28), rgba(226,85,85,.06)); border-color: rgba(226,85,85,.22); }
+    .bet-btn.black{ background: linear-gradient(180deg, rgba(42,47,58,.55), rgba(42,47,58,.12)); border-color: rgba(255,255,255,.08); }
+    .bet-btn.green{ background: linear-gradient(180deg, rgba(41,227,164,.22), rgba(41,227,164,.06)); border-color: rgba(41,227,164,.18); }
+    .bet-btn.bait{ background: linear-gradient(135deg, rgba(76,125,255,.22), rgba(143,91,255,.12)); border-color: rgba(143,91,255,.18); }
+
+    .bet-btn.selected{
+      outline: 2px solid rgba(41,227,164,.35);
+      box-shadow: 0 0 0 6px rgba(41,227,164,.08);
+    }
+
+    .bet-meta{
+      display:flex;
+      justify-content:space-between;
+      margin: 10px 2px 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .bet-list{
+      margin-top: 6px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding-top: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      overflow:auto;
+    }
+    .bet-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(0,0,0,.18);
+    }
+    .who{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+    .avatar{
+      width:28px;
+      height:28px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: radial-gradient(circle at 30% 20%, rgba(41,227,164,.22), transparent 55%),
+                  radial-gradient(circle at 70% 80%, rgba(143,91,255,.22), transparent 55%),
+                  rgba(255,255,255,.03);
+    }
+    .name{
+      font-size: 13px;
+      font-weight: 900;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 140px;
+    }
+    .amt{
+      font-variant-numeric: tabular-nums;
+      font-weight: 1000;
+      font-size: 13px;
+      color: var(--text);
+      display:flex; align-items:center; gap: 8px;
+    }
+    .coin{
+      width: 14px; height: 14px; border-radius: 6px;
+      background: rgba(41,227,164,.18);
+      border:1px solid rgba(41,227,164,.25);
+    }
+
+    /* --- BALANCE / TOAST --- */
+    .bottom-bar{
+      margin-top: 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      flex-wrap:wrap;
+      padding: 12px 14px;
+    }
+    .bal{
+      display:flex; align-items:center; gap:10px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+    }
+    .bal strong{
+      color: var(--text);
+      font-size: 16px;
+      letter-spacing:0;
+      text-transform:none;
+      font-variant-numeric: tabular-nums;
+    }
+    .toast{
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--muted);
+    }
+    .toast.good{ color: var(--good); }
+    .toast.bad{ color: var(--bad); }
+
+    /* subtle scroll bar */
+    .bet-list::-webkit-scrollbar{ width:10px; }
+    .bet-list::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+  </style>
 </head>
 
 <body>
-
-<div id="roulette-wrapper">
-
-  <div id="history"></div>
-
-  <div id="wheel-viewport">
-    <div id="wheel"></div>
-    <div id="pointer"></div>
-  </div>
-
-  <div id="timer">Rolling in <span id="time">15.00</span></div>
-
-  <div id="bets">
-    <div class="bet red" data-bet="red">
-      <div class="bet-title">PLACE BET</div>
-      <div class="bet-multi">x2.1</div>
+  <!-- Replace this header with your existing site header code -->
+  <header class="site-header">
+    <div class="wrap nav">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>369CREW</div>
+      </div>
+      <div class="nav-right">
+        <div class="pill">Games</div>
+        <div class="pill">Battles</div>
+        <div class="pill">Rewards</div>
+        <div class="pill">Marketplace</div>
+      </div>
     </div>
-    <div class="bet green" data-bet="green">
-      <div class="bet-title">PLACE BET</div>
-      <div class="bet-multi">x14.7</div>
-    </div>
-    <div class="bet bait" data-bet="bait">
-      <div class="bet-title">PLACE BET</div>
-      <div class="bet-multi">x7.0</div>
-    </div>
-    <div class="bet black" data-bet="black">
-      <div class="bet-title">PLACE BET</div>
-      <div class="bet-multi">x2.1</div>
-    </div>
-  </div>
+  </header>
 
-  <div id="balance">Balance: <span id="bal">100.00</span></div>
+  <main class="main">
+    <div class="row-top">
+      <div class="card stats">
+        <h3>Last 12</h3>
+        <div class="last100">
+          <div class="mini">Red <strong id="cntRed">0</strong></div>
+          <div class="mini">Black <strong id="cntBlack">0</strong></div>
+          <div class="mini">Green <strong id="cntGreen">0</strong></div>
+          <div class="mini">Bait <strong id="cntBait">0</strong></div>
+          <div class="history" id="history"></div>
+        </div>
+      </div>
 
-</div>
+      <div class="card jackpot">
+        <div>
+          <div class="label">Double Jackpot</div>
+          <div class="val" id="jackpotVal">$330.99</div>
+        </div>
+        <div class="icons">
+          <div class="icon"></div><div class="icon"></div><div class="icon"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="card wheel-card">
+      <div class="wheel-head">
+        <div class="rolling-badge">
+          <span class="t">Rolling</span>
+          <span class="time" id="timer">15.00</span>
+        </div>
+      </div>
+
+      <div class="wheel-viewport" id="viewport">
+        <div class="wheel-track" id="track"></div>
+        <div class="pointer"></div>
+      </div>
+
+      <div class="bet-controls">
+        <div class="amount">
+          <label>Bet Amount</label>
+          <input id="betAmount" type="number" min="0.01" step="0.01" value="1.00" />
+        </div>
+
+        <div class="quick">
+          <div class="qbtn" data-q="last">Last</div>
+          <div class="qbtn" data-q="half">1/2</div>
+          <div class="qbtn" data-q="double">x2</div>
+          <div class="qbtn" data-q="+1">+1</div>
+          <div class="qbtn" data-q="+10">+10</div>
+          <div class="qbtn" data-q="+100">+100</div>
+          <div class="qbtn" data-q="+1000">+1000</div>
+          <div class="qbtn" data-q="max">Max</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bets-grid">
+      <div class="bet-card" data-type="red">
+        <div class="bet-btn red" id="btnRed">
+          <div class="left">
+            <div class="chip red"></div>
+            <div>PLACE BET</div>
+          </div>
+          <div class="mult">x2.1</div>
+        </div>
+        <div class="bet-meta"><span><span id="totRed">0</span> Bets Total</span><span id="sumRed">0.00</span></div>
+        <div class="bet-list" id="listRed"></div>
+      </div>
+
+      <div class="bet-card" data-type="green">
+        <div class="bet-btn green" id="btnGreen">
+          <div class="left">
+            <div class="chip green"></div>
+            <div>PLACE BET</div>
+          </div>
+          <div class="mult">x14.7</div>
+        </div>
+        <div class="bet-meta"><span><span id="totGreen">0</span> Bets Total</span><span id="sumGreen">0.00</span></div>
+        <div class="bet-list" id="listGreen"></div>
+      </div>
+
+      <div class="bet-card" data-type="bait">
+        <div class="bet-btn bait" id="btnBait">
+          <div class="left">
+            <div class="chip bait"></div>
+            <div>PLACE BET</div>
+          </div>
+          <div class="mult">x7.0</div>
+        </div>
+        <div class="bet-meta"><span><span id="totBait">0</span> Bets Total</span><span id="sumBait">0.00</span></div>
+        <div class="bet-list" id="listBait"></div>
+      </div>
+
+      <div class="bet-card" data-type="black">
+        <div class="bet-btn black" id="btnBlack">
+          <div class="left">
+            <div class="chip black"></div>
+            <div>PLACE BET</div>
+          </div>
+          <div class="mult">x2.1</div>
+        </div>
+        <div class="bet-meta"><span><span id="totBlack">0</span> Bets Total</span><span id="sumBlack">0.00</span></div>
+        <div class="bet-list" id="listBlack"></div>
+      </div>
+    </section>
+
+    <section class="card bottom-bar">
+      <div class="bal">Balance: <strong id="balance">100.00</strong></div>
+      <div class="toast" id="toast">Synced roulette running…</div>
+    </section>
+  </main>
+
+  <!-- Replace this footer with your existing site footer code -->
+  <footer class="site-footer">
+    <div class="wrap" style="color:var(--muted);font-size:12px;font-weight:800;">
+      369CREW • Demo roulette (deterministic sync) • Client-side fake balance
+    </div>
+  </footer>
 
 <script>
-const GENESIS = 1700000000000;
-const ROUND_MS = 15000;
-const TILE_W = 84;
-const TILES = 200;
+(() => {
+  // ---------------------------
+  // CONFIG
+  // ---------------------------
 
-let balance = 100;
-let bet = null;
+  // Round length (ms)
+  const ROUND_MS = 15000;
 
-const wheel = document.getElementById("wheel");
-const timeEl = document.getElementById("time");
-const balEl = document.getElementById("bal");
-const history = document.getElementById("history");
+  // How long the spin animation lasts (ms)
+  const SPIN_MS = 5200;
 
-function rand(seed) {
-  return Math.abs(Math.sin(seed * 9999)) % 1;
-}
+  // Conveyor belt window size
+  const WINDOW_TILES = 140;
 
-function outcome(round) {
-  const r = rand(round);
-  if (r < .03) return "green";
-  if (r < .06) return "bait";
-  if (r < .53) return "red";
-  return "black";
-}
-
-function build() {
-  wheel.innerHTML = "";
-  for (let i=0;i<TILES;i++) {
-    const d = document.createElement("div");
-    const r = rand(i);
-    d.className = "tile " + (
-      r < .03 ? "green" :
-      r < .06 ? "bait" :
-      r < .53 ? "red" : "black"
-    );
-    wheel.appendChild(d);
+  // Distribution (deterministic selection)
+  // green 3%, bait 3%, red 47%, black 47%
+  function pickOutcome(r01){
+    if (r01 < 0.03) return "green";
+    if (r01 < 0.06) return "bait";
+    if (r01 < 0.53) return "red";
+    return "black";
   }
-}
 
-build();
+  const MULTI = { red: 2.1, black: 2.1, green: 14.7, bait: 7.0 };
 
-document.querySelectorAll(".bet").forEach(b=>{
-  b.onclick = ()=>{
-    bet = b.dataset.bet;
+  // "Hidden genesis" - not displayed; lightly obfuscated.
+  // Anyone inspecting can still find it (client-side limitation), but we don't show it in UI.
+  const GENESIS = (() => {
+    const a = "MTcw";          // base64-ish fragments (not real base64 decode on purpose)
+    const b = 1700000000;      // seconds
+    const c = 997;             // ms offset
+    return (b * 1000) + c;     // 1700000000997
+  })();
+
+  // ---------------------------
+  // STATE
+  // ---------------------------
+  let balance = 100.00;
+  let lastBetAmount = 1.00;
+
+  // betSlip holds current round's bet (single bet like screenshot UX)
+  let betSlip = null; // { type, amount, roundIndex }
+
+  // history of last outcomes (most recent first)
+  const history = [];
+
+  // ---------------------------
+  // DOM
+  // ---------------------------
+  const $ = (id) => document.getElementById(id);
+
+  const track = $("track");
+  const viewport = $("viewport");
+  const timerEl = $("timer");
+  const balanceEl = $("balance");
+  const toastEl = $("toast");
+
+  const betAmountEl = $("betAmount");
+
+  const btnRed = $("btnRed");
+  const btnBlack = $("btnBlack");
+  const btnGreen = $("btnGreen");
+  const btnBait = $("btnBait");
+
+  const listRed = $("listRed");
+  const listBlack = $("listBlack");
+  const listGreen = $("listGreen");
+  const listBait = $("listBait");
+
+  // Totals
+  const tot = {
+    red: $("totRed"),
+    black: $("totBlack"),
+    green: $("totGreen"),
+    bait: $("totBait"),
   };
-});
+  const sum = {
+    red: $("sumRed"),
+    black: $("sumBlack"),
+    green: $("sumGreen"),
+    bait: $("sumBait"),
+  };
 
-let lastRound = -1;
+  // counters
+  const cntRed = $("cntRed");
+  const cntBlack = $("cntBlack");
+  const cntGreen = $("cntGreen");
+  const cntBait = $("cntBait");
 
-function loop() {
-  const now = Date.now();
-  const round = Math.floor((now-GENESIS)/ROUND_MS);
-  const left = ROUND_MS - ((now-GENESIS)%ROUND_MS);
-  timeEl.textContent = (left/1000).toFixed(2);
+  // history row
+  const historyEl = $("history");
 
-  if (round !== lastRound) {
-    lastRound = round;
-    const res = outcome(round);
-    spin(res);
-    settle(res);
-  }
+  // quick buttons
+  document.querySelectorAll(".qbtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const q = btn.dataset.q;
+      const cur = clampMoney(parseFloat(betAmountEl.value || "0") || 0);
+      const max = clampMoney(balance);
+      let next = cur;
 
-  requestAnimationFrame(loop);
-}
+      if (q === "last") next = clampMoney(lastBetAmount);
+      if (q === "half") next = clampMoney(cur / 2);
+      if (q === "double") next = clampMoney(cur * 2);
+      if (q === "+1") next = clampMoney(cur + 1);
+      if (q === "+10") next = clampMoney(cur + 10);
+      if (q === "+100") next = clampMoney(cur + 100);
+      if (q === "+1000") next = clampMoney(cur + 1000);
+      if (q === "max") next = max;
 
-function spin(res) {
-  const tiles = [...wheel.children];
-  const idx = tiles.findIndex(t=>t.classList.contains(res));
-  const offset = idx*TILE_W - window.innerWidth/2 + TILE_W/2;
-  wheel.style.transition = "none";
-  wheel.style.transform = "translateX(0)";
-  requestAnimationFrame(()=>{
-    wheel.style.transition = "transform 5s cubic-bezier(.15,.85,.25,1)";
-    wheel.style.transform = `translateX(-${offset}px)`;
+      if (next > max) next = max;
+      betAmountEl.value = next.toFixed(2);
+    });
   });
 
-  const h = document.createElement("div");
-  h.className = "history-tile "+res;
-  history.prepend(h);
-  if (history.children.length>12) history.lastChild.remove();
-}
+  // ---------------------------
+  // Helpers
+  // ---------------------------
+  function clampMoney(x){
+    if (!isFinite(x) || x < 0) return 0;
+    return Math.round(x * 100) / 100;
+  }
 
-function settle(res) {
-  if (!bet) return;
-  const multi = res==="green"?14.7:res==="bait"?7:2.1;
-  if (bet===res) balance += 10*multi;
-  else balance -= 10;
-  balEl.textContent = balance.toFixed(2);
-  bet = null;
-}
+  // Deterministic "random" in [0,1)
+  function seeded01(seed){
+    // stable, fast, deterministic
+    const s = Math.sin(seed * 9999.123) * 1000000;
+    return Math.abs(s) % 1;
+  }
 
-loop();
+  function roundIndexAt(t){
+    return Math.floor((t - GENESIS) / ROUND_MS);
+  }
+
+  function timeLeftMs(t){
+    const elapsed = (t - GENESIS) % ROUND_MS;
+    return ROUND_MS - (elapsed < 0 ? (elapsed + ROUND_MS) : elapsed);
+  }
+
+  function outcomeForRound(rIdx){
+    return pickOutcome(seeded01(rIdx + 1337));
+  }
+
+  function buildWindowForRound(rIdx, winningType){
+    // Build a deterministic strip of tiles with the winning tile pinned at a known index
+    // so the belt always lands perfectly.
+    const winAt = Math.floor(WINDOW_TILES * 0.62); // slightly right of center like most roulettes
+    const tiles = new Array(WINDOW_TILES);
+
+    for (let i = 0; i < WINDOW_TILES; i++){
+      if (i === winAt) {
+        tiles[i] = winningType;
+      } else {
+        const r = seeded01((rIdx * 100000) + i * 97 + 4242);
+        tiles[i] = pickOutcome(r);
+      }
+    }
+    return { tiles, winAt };
+  }
+
+  function detectMissingImages(){
+    // If images fail, we apply "fallback" class so it still looks good.
+    // This is best-effort only.
+    const test = (src) => new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = src + "?v=" + Date.now();
+    });
+
+    return Promise.all([
+      test("redtile.png"),
+      test("blacktile.png"),
+      test("greentile.png"),
+      test("baittile.png"),
+    ]).then(ok => ({
+      red: ok[0], black: ok[1], green: ok[2], bait: ok[3]
+    }));
+  }
+
+  function renderHistory(){
+    historyEl.innerHTML = "";
+    const last12 = history.slice(0, 12);
+    const counts = { red:0, black:0, green:0, bait:0 };
+    last12.forEach(t => counts[t]++);
+
+    cntRed.textContent = counts.red;
+    cntBlack.textContent = counts.black;
+    cntGreen.textContent = counts.green;
+    cntBait.textContent = counts.bait;
+
+    last12.forEach(type => {
+      const d = document.createElement("div");
+      d.className = `h-tile h-${type}`;
+      historyEl.appendChild(d);
+    });
+  }
+
+  function pushHistory(type){
+    history.unshift(type);
+    if (history.length > 40) history.length = 40;
+    renderHistory();
+  }
+
+  function setToast(msg, kind){
+    toastEl.textContent = msg;
+    toastEl.classList.remove("good","bad");
+    if (kind) toastEl.classList.add(kind);
+  }
+
+  function clearSelected(){
+    [btnRed, btnBlack, btnGreen, btnBait].forEach(b => b.classList.remove("selected"));
+  }
+
+  function setSelected(type){
+    clearSelected();
+    const map = { red: btnRed, black: btnBlack, green: btnGreen, bait: btnBait };
+    map[type].classList.add("selected");
+  }
+
+  function fakeOtherBets(rIdx){
+    // Deterministic "other users" list per round (looks live, but synced everywhere)
+    const names = ["edgarsV","belisimo","kuro","hana","dima","vex","nova","riven","glitch","mori","zen","astra"];
+    const types = ["red","black","green","bait"];
+    const out = { red:[], black:[], green:[], bait:[] };
+
+    const n = 6 + Math.floor(seeded01(rIdx + 777) * 8); // 6..13 rows total
+    for (let i=0;i<n;i++){
+      const name = names[Math.floor(seeded01(rIdx*1000 + i*17) * names.length)];
+      const type = types[Math.floor(seeded01(rIdx*2000 + i*29) * types.length)];
+      const amt = clampMoney((seeded01(rIdx*3000 + i*43) * 3 + 0.2) * (type==="green" ? 0.8 : 1.2));
+      out[type].push({ name, amt });
+    }
+    return out;
+  }
+
+  function renderBetLists(rIdx){
+    const bots = fakeOtherBets(rIdx);
+
+    const render = (type, el) => {
+      el.innerHTML = "";
+      let total = 0;
+      bots[type].forEach(row => {
+        total += row.amt;
+        const div = document.createElement("div");
+        div.className = "bet-row";
+        div.innerHTML = `
+          <div class="who">
+            <div class="avatar"></div>
+            <div class="name">${escapeHtml(row.name)}</div>
+          </div>
+          <div class="amt"><span class="coin"></span>${row.amt.toFixed(2)}</div>
+        `;
+        el.appendChild(div);
+      });
+
+      // include YOUR bet (if placed on this round)
+      if (betSlip && betSlip.roundIndex === rIdx && betSlip.type === type){
+        total += betSlip.amount;
+        const me = document.createElement("div");
+        me.className = "bet-row";
+        me.style.borderColor = "rgba(41,227,164,.25)";
+        me.style.background = "linear-gradient(180deg, rgba(41,227,164,.12), rgba(0,0,0,.18))";
+        me.innerHTML = `
+          <div class="who">
+            <div class="avatar" style="background:rgba(41,227,164,.18);border-color:rgba(41,227,164,.25)"></div>
+            <div class="name">you</div>
+          </div>
+          <div class="amt"><span class="coin"></span>${betSlip.amount.toFixed(2)}</div>
+        `;
+        el.prepend(me);
+      }
+
+      tot[type].textContent = bots[type].length + ((betSlip && betSlip.roundIndex===rIdx && betSlip.type===type) ? 1 : 0);
+      sum[type].textContent = total.toFixed(2);
+    };
+
+    render("red", listRed);
+    render("black", listBlack);
+    render("green", listGreen);
+    render("bait", listBait);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // ---------------------------
+  // Betting
+  // ---------------------------
+  function tryPlaceBet(type){
+    const now = Date.now();
+    const rIdx = roundIndexAt(now);
+    const left = timeLeftMs(now);
+
+    // lock bets near the end (like real sites do)
+    if (left < 1200){
+      setToast("Too late — betting closed for this round.", "bad");
+      return;
+    }
+
+    let amt = clampMoney(parseFloat(betAmountEl.value || "0") || 0);
+    if (amt <= 0){
+      setToast("Enter a bet amount.", "bad");
+      return;
+    }
+    if (amt > balance){
+      setToast("Insufficient balance.", "bad");
+      return;
+    }
+
+    // single bet slip like screenshot vibe
+    betSlip = { type, amount: amt, roundIndex: rIdx };
+    lastBetAmount = amt;
+
+    balance = clampMoney(balance - amt);
+    balanceEl.textContent = balance.toFixed(2);
+
+    setSelected(type);
+    renderBetLists(rIdx);
+    setToast(`Bet placed on ${type.toUpperCase()} for ${amt.toFixed(2)}.`, null);
+  }
+
+  btnRed.addEventListener("click", () => tryPlaceBet("red"));
+  btnBlack.addEventListener("click", () => tryPlaceBet("black"));
+  btnGreen.addEventListener("click", () => tryPlaceBet("green"));
+  btnBait.addEventListener("click", () => tryPlaceBet("bait"));
+
+  // ---------------------------
+  // Roulette spin (conveyor)
+  // ---------------------------
+  let currentRound = null;
+  let spinning = false;
+  let tileMissing = { red:false, black:false, green:false, bait:false };
+
+  function applyFallbackClasses(){
+    // wheel tiles
+    document.querySelectorAll(".tile.red").forEach(el => { if (!tileMissing.red) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".tile.black").forEach(el => { if (!tileMissing.black) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".tile.green").forEach(el => { if (!tileMissing.green) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".tile.bait").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
+
+    // history tiles
+    document.querySelectorAll(".h-red").forEach(el => { if (!tileMissing.red) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".h-black").forEach(el => { if (!tileMissing.black) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".h-green").forEach(el => { if (!tileMissing.green) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".h-bait").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
+  }
+
+  function buildTrack(tiles){
+    track.innerHTML = "";
+    tiles.forEach(type => {
+      const d = document.createElement("div");
+      d.className = `tile ${type}`;
+      track.appendChild(d);
+    });
+    applyFallbackClasses();
+  }
+
+  function animateToWin(winAt){
+    // compute exact translateX so that winAt tile aligns under pointer at center
+    const vw = viewport.clientWidth;
+    const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 78;
+    const margin = 8; // each tile has margin 0 4 => total 8
+    const step = tileW + margin;
+
+    const centerOffset = (vw / 2) - (tileW / 2);
+    const targetX = (winAt * step) - centerOffset;
+
+    // start from a small offset to feel like it was already rolling
+    const preRoll = targetX - (step * (18 + Math.floor(seeded01(currentRound + 999) * 10)));
+
+    track.style.transition = "none";
+    track.style.transform = `translate3d(-${Math.max(0, preRoll)}px,0,0)`;
+    // force layout
+    track.getBoundingClientRect();
+
+    track.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.12,.86,.18,1)`;
+    track.style.transform = `translate3d(-${targetX}px,0,0)`;
+  }
+
+  function settleRound(rIdx, winType){
+    // Pay out if betSlip was placed for this round
+    if (betSlip && betSlip.roundIndex === rIdx){
+      if (betSlip.type === winType){
+        const payout = clampMoney(betSlip.amount * MULTI[winType]);
+        balance = clampMoney(balance + payout);
+        balanceEl.textContent = balance.toFixed(2);
+        setToast(`WIN! ${winType.toUpperCase()} paid ${payout.toFixed(2)}.`, "good");
+      } else {
+        setToast(`Lost — ${winType.toUpperCase()} hit.`, "bad");
+      }
+      betSlip = null;
+      clearSelected();
+    }
+
+    // update history
+    pushHistory(winType);
+  }
+
+  // ---------------------------
+  // Main loop
+  // ---------------------------
+  function frame(){
+    const now = Date.now();
+    const rIdx = roundIndexAt(now);
+
+    // timer display
+    const left = timeLeftMs(now);
+    timerEl.textContent = (left / 1000).toFixed(2);
+
+    if (currentRound === null){
+      currentRound = rIdx;
+      renderBetLists(rIdx);
+      // preload a static state
+      const winType = outcomeForRound(rIdx);
+      const { tiles, winAt } = buildWindowForRound(rIdx, winType);
+      buildTrack(tiles);
+      // place it already centered (no animation yet)
+      const vw = viewport.clientWidth;
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 78;
+      const margin = 8;
+      const step = tileW + margin;
+      const centerOffset = (vw / 2) - (tileW / 2);
+      const targetX = (winAt * step) - centerOffset;
+      track.style.transition = "none";
+      track.style.transform = `translate3d(-${targetX}px,0,0)`;
+    }
+
+    // start spinning at the start of a new round
+    if (rIdx !== currentRound && !spinning){
+      spinning = true;
+
+      // lock to new round
+      currentRound = rIdx;
+      renderBetLists(rIdx);
+
+      const winType = outcomeForRound(rIdx);
+      const { tiles, winAt } = buildWindowForRound(rIdx, winType);
+      buildTrack(tiles);
+
+      // animate
+      requestAnimationFrame(() => {
+        animateToWin(winAt);
+      });
+
+      // settle after spin ends
+      setTimeout(() => {
+        settleRound(rIdx, winType);
+        // keep the track in its final position; next round rebuilds anyway
+        spinning = false;
+      }, SPIN_MS + 30);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  // start with a bit of history so it doesn't look empty
+  (function seedHistory(){
+    const now = Date.now();
+    const base = roundIndexAt(now);
+    for (let i=0;i<12;i++){
+      const t = outcomeForRound(base - i);
+      history.push(t);
+    }
+    renderHistory();
+  })();
+
+  // simple deterministic jackpot display (cosmetic)
+  (function updateJackpot(){
+    const now = Date.now();
+    const r = seeded01(Math.floor(now/10000));
+    const val = 250 + Math.floor(r * 250) + (seeded01(Math.floor(now/1000)) * 0.99);
+    $("jackpotVal").textContent = "$" + val.toFixed(2);
+    setTimeout(updateJackpot, 2000);
+  })();
+
+  // detect missing images, then start
+  detectMissingImages().then(ok => {
+    tileMissing = {
+      red: !ok.red,
+      black: !ok.black,
+      green: !ok.green,
+      bait: !ok.bait
+    };
+    applyFallbackClasses();
+    balanceEl.textContent = balance.toFixed(2);
+    frame();
+  });
+
+})();
 </script>
-
 </body>
 </html>
