@@ -21,6 +21,8 @@
       --black:#2a2f3a;
       --bait1:#4c7dff;
       --bait2:#8f5bff;
+      --baitRed:#ff6b6b;
+      --baitBlack:#2f3442;
 
       --good:#29e3a4;
       --bad:#ff5a7a;
@@ -71,12 +73,43 @@
     }
     .nav-right{
       display:flex; align-items:center; gap:10px;
-      color:var(--muted); font-size:13px;
+      color:var(--muted); font-size:13px; flex-wrap:wrap;
     }
     .pill{
       padding:8px 10px; border-radius:999px;
       background: rgba(255,255,255,.04);
       border:1px solid rgba(255,255,255,.06);
+    }
+
+    .balance-pill{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+    .wallet-btn{
+      width:34px;
+      height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(41,227,164,.12);
+      color: var(--green);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(41,227,164,.18);
+    }
+    .wallet-btn svg{ width:18px; height:18px; }
+    .wallet-btn:focus-visible{
+      outline: 2px solid rgba(41,227,164,.45);
+      outline-offset: 2px;
     }
 
     /* --- MAIN LAYOUT --- */
@@ -158,13 +191,15 @@
     .h-red{ background-image:url("redtile.png"); }
     .h-black{ background-image:url("blacktile.png"); }
     .h-green{ background-image:url("greentile.png"); }
-    .h-bait{ background-image:url("baittile.png"); }
+    .h-bait-red{ background-image: linear-gradient(135deg, rgba(255,107,107,.35), rgba(76,125,255,.20)), url("baittile.png"); }
+    .h-bait-black{ background-image: linear-gradient(135deg, rgba(47,52,66,.6), rgba(143,91,255,.20)), url("baittile.png"); }
 
     /* fallback if images missing */
     .h-red.fallback{ background: linear-gradient(180deg, rgba(226,85,85,.35), rgba(226,85,85,.08)); }
     .h-black.fallback{ background: linear-gradient(180deg, rgba(42,47,58,.9), rgba(42,47,58,.25)); }
     .h-green.fallback{ background: linear-gradient(180deg, rgba(41,227,164,.35), rgba(41,227,164,.08)); }
-    .h-bait.fallback{ background: linear-gradient(135deg, rgba(76,125,255,.35), rgba(143,91,255,.20)); }
+    .h-bait-red.fallback{ background: linear-gradient(135deg, rgba(255,107,107,.35), rgba(76,125,255,.20)); }
+    .h-bait-black.fallback{ background: linear-gradient(135deg, rgba(47,52,66,.6), rgba(143,91,255,.20)); }
 
     .jackpot{
       padding: 12px 14px;
@@ -278,13 +313,15 @@
     .tile.red{ background-image:url("redtile.png"); }
     .tile.black{ background-image:url("blacktile.png"); }
     .tile.green{ background-image:url("greentile.png"); }
-    .tile.bait{ background-image:url("baittile.png"); }
+    .tile.bait-red{ background-image: linear-gradient(135deg, rgba(255,107,107,.35), rgba(76,125,255,.15)), url("baittile.png"); }
+    .tile.bait-black{ background-image: linear-gradient(135deg, rgba(47,52,66,.65), rgba(143,91,255,.15)), url("baittile.png"); }
 
     /* fallback looks */
     .tile.red.fallback{ background: linear-gradient(180deg, rgba(226,85,85,.35), rgba(226,85,85,.08)); }
     .tile.black.fallback{ background: linear-gradient(180deg, rgba(42,47,58,.95), rgba(42,47,58,.30)); }
     .tile.green.fallback{ background: linear-gradient(180deg, rgba(41,227,164,.35), rgba(41,227,164,.08)); }
-    .tile.bait.fallback{ background: linear-gradient(135deg, rgba(76,125,255,.35), rgba(143,91,255,.22)); }
+    .tile.bait-red.fallback{ background: linear-gradient(135deg, rgba(255,107,107,.35), rgba(76,125,255,.22)); }
+    .tile.bait-black.fallback{ background: linear-gradient(135deg, rgba(47,52,66,.65), rgba(143,91,255,.22)); }
 
     .pointer{
       position:absolute;
@@ -495,7 +532,7 @@
       border:1px solid rgba(41,227,164,.25);
     }
 
-    /* --- BALANCE / TOAST --- */
+    /* --- TOAST --- */
     .bottom-bar{
       margin-top: 14px;
       display:flex;
@@ -504,21 +541,6 @@
       gap: 12px;
       flex-wrap:wrap;
       padding: 12px 14px;
-    }
-    .bal{
-      display:flex; align-items:center; gap:10px;
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 900;
-      letter-spacing:.2px;
-      text-transform: uppercase;
-    }
-    .bal strong{
-      color: var(--text);
-      font-size: 16px;
-      letter-spacing:0;
-      text-transform:none;
-      font-variant-numeric: tabular-nums;
     }
     .toast{
       font-size: 13px;
@@ -536,6 +558,99 @@
       border: 3px solid transparent;
       background-clip: content-box;
     }
+
+    /* --- DEPOSIT MODAL --- */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(4,7,12,.7);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+      z-index: 40;
+    }
+    .modal-backdrop.show{ display:flex; }
+    .modal{
+      width: min(520px, 100%);
+      background: #0f1624;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.4);
+      padding: 16px;
+    }
+    .modal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 12px;
+    }
+    .modal-title{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    .modal-close{
+      border:none;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 10px;
+      width:32px;
+      height:32px;
+      cursor:pointer;
+    }
+    .deposit-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .deposit-card{
+      padding: 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(7,10,16,.5);
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .deposit-logo{
+      width:54px;
+      height:54px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(41,227,164,.25), rgba(76,125,255,.35));
+      border:1px solid rgba(255,255,255,.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .deposit-name{
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .deposit-meta{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .deposit-btn{
+      margin-top: auto;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(41,227,164,.35);
+      background: rgba(41,227,164,.15);
+      color: var(--text);
+      font-weight: 900;
+      cursor:pointer;
+    }
+    .deposit-card.disabled{
+      opacity: .5;
+    }
+    .deposit-card.disabled .deposit-btn{
+      cursor:not-allowed;
+      border-color: rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+    }
   </style>
 </head>
 
@@ -552,6 +667,16 @@
         <div class="pill">Battles</div>
         <div class="pill">Rewards</div>
         <div class="pill">Marketplace</div>
+        <div class="balance-pill">
+          <span id="balance">$100.00</span>
+          <button class="wallet-btn" id="walletBtn" aria-label="Open wallet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7h15a3 3 0 0 1 3 3v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+              <path d="M16 3h-9a2 2 0 0 0-2 2v2h16V5a2 2 0 0 0-2-2z"/>
+              <circle cx="17" cy="13" r="1.5"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -663,10 +788,32 @@
     </section>
 
     <section class="card bottom-bar">
-      <div class="bal">Balance: <strong id="balance">100.00</strong></div>
       <div class="toast" id="toast">Synced roulette running…</div>
     </section>
   </main>
+
+  <div class="modal-backdrop" id="depositModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="depositTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="depositTitle">Deposit Options</div>
+        <button class="modal-close" id="depositClose" aria-label="Close deposit options">✕</button>
+      </div>
+      <div class="deposit-grid">
+        <div class="deposit-card">
+          <div class="deposit-logo">FR</div>
+          <div class="deposit-name">Free Refill</div>
+          <div class="deposit-meta">USD • Credits $1,000 instantly</div>
+          <button class="deposit-btn" id="freeRefillBtn">Claim $1,000</button>
+        </div>
+        <div class="deposit-card disabled">
+          <div class="deposit-logo">?</div>
+          <div class="deposit-name">Coming Soon</div>
+          <div class="deposit-meta">More currencies on the way</div>
+          <button class="deposit-btn" disabled>Unavailable</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Replace this footer with your existing site footer code -->
   <footer class="site-footer">
@@ -688,15 +835,30 @@
   const SPIN_MS = 5200;
 
   // Conveyor belt window size
-  const WINDOW_TILES = 140;
+  const WINDOW_TILES = 15;
 
-  // Distribution (deterministic selection)
-  // green 3%, bait 3%, red 47%, black 47%
-  function pickOutcome(r01){
-    if (r01 < 0.03) return "green";
-    if (r01 < 0.06) return "bait";
-    if (r01 < 0.53) return "red";
-    return "black";
+  // Wheel layout: 15 tiles, even red/black, 1 green, 2 baits (one red, one black).
+  const WHEEL_TILES = [
+    "red",
+    "black",
+    "red",
+    "black",
+    "red",
+    "bait-red",
+    "green",
+    "bait-black",
+    "black",
+    "red",
+    "black",
+    "red",
+    "black",
+    "red",
+    "black"
+  ];
+
+  function outcomeFromTile(type){
+    if (type === "bait-red" || type === "bait-black") return "bait";
+    return type;
   }
 
   const MULTI = { red: 2.1, black: 2.1, green: 14.7, bait: 7.0 };
@@ -732,6 +894,10 @@
   const timerEl = $("timer");
   const balanceEl = $("balance");
   const toastEl = $("toast");
+  const walletBtn = $("walletBtn");
+  const depositModal = $("depositModal");
+  const depositClose = $("depositClose");
+  const freeRefillBtn = $("freeRefillBtn");
 
   const betAmountEl = $("betAmount");
 
@@ -790,12 +956,47 @@
     });
   });
 
+  // wallet / deposit modal
+  function openDeposit(){
+    depositModal.classList.add("show");
+    depositModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeDeposit(){
+    depositModal.classList.remove("show");
+    depositModal.setAttribute("aria-hidden", "true");
+  }
+
+  walletBtn.addEventListener("click", openDeposit);
+  depositClose.addEventListener("click", closeDeposit);
+  depositModal.addEventListener("click", (event) => {
+    if (event.target === depositModal) closeDeposit();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDeposit();
+  });
+
+  freeRefillBtn.addEventListener("click", () => {
+    balance = clampMoney(balance + 1000);
+    updateBalanceDisplay();
+    setToast("Free refill credited: $1,000.", "good");
+    closeDeposit();
+  });
+
   // ---------------------------
   // Helpers
   // ---------------------------
   function clampMoney(x){
     if (!isFinite(x) || x < 0) return 0;
     return Math.round(x * 100) / 100;
+  }
+
+  function formatMoney(x){
+    return `$${clampMoney(x).toFixed(2)}`;
+  }
+
+  function updateBalanceDisplay(){
+    balanceEl.textContent = formatMoney(balance);
   }
 
   // Deterministic "random" in [0,1)
@@ -815,24 +1016,13 @@
   }
 
   function outcomeForRound(rIdx){
-    return pickOutcome(seeded01(rIdx + 1337));
+    const tileIndex = Math.floor(seeded01(rIdx + 1337) * WINDOW_TILES);
+    const tileType = WHEEL_TILES[tileIndex];
+    return { tileIndex, tileType, outcome: outcomeFromTile(tileType) };
   }
 
-  function buildWindowForRound(rIdx, winningType){
-    // Build a deterministic strip of tiles with the winning tile pinned at a known index
-    // so the belt always lands perfectly.
-    const winAt = Math.floor(WINDOW_TILES * 0.62); // slightly right of center like most roulettes
-    const tiles = new Array(WINDOW_TILES);
-
-    for (let i = 0; i < WINDOW_TILES; i++){
-      if (i === winAt) {
-        tiles[i] = winningType;
-      } else {
-        const r = seeded01((rIdx * 100000) + i * 97 + 4242);
-        tiles[i] = pickOutcome(r);
-      }
-    }
-    return { tiles, winAt };
+  function buildWindowForRound(tileIndex){
+    return { tiles: WHEEL_TILES.slice(), winAt: tileIndex };
   }
 
   function detectMissingImages(){
@@ -859,7 +1049,13 @@
     historyEl.innerHTML = "";
     const last12 = history.slice(0, 12);
     const counts = { red:0, black:0, green:0, bait:0 };
-    last12.forEach(t => counts[t]++);
+    last12.forEach(t => {
+      if (t === "bait-red" || t === "bait-black"){
+        counts.bait++;
+      } else if (counts[t] !== undefined){
+        counts[t]++;
+      }
+    });
 
     cntRed.textContent = counts.red;
     cntBlack.textContent = counts.black;
@@ -993,7 +1189,7 @@
     lastBetAmount = amt;
 
     balance = clampMoney(balance - amt);
-    balanceEl.textContent = balance.toFixed(2);
+    updateBalanceDisplay();
 
     setSelected(type);
     renderBetLists(rIdx);
@@ -1017,13 +1213,13 @@
     document.querySelectorAll(".tile.red").forEach(el => { if (!tileMissing.red) return; el.classList.add("fallback"); });
     document.querySelectorAll(".tile.black").forEach(el => { if (!tileMissing.black) return; el.classList.add("fallback"); });
     document.querySelectorAll(".tile.green").forEach(el => { if (!tileMissing.green) return; el.classList.add("fallback"); });
-    document.querySelectorAll(".tile.bait").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".tile.bait-red, .tile.bait-black").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
 
     // history tiles
     document.querySelectorAll(".h-red").forEach(el => { if (!tileMissing.red) return; el.classList.add("fallback"); });
     document.querySelectorAll(".h-black").forEach(el => { if (!tileMissing.black) return; el.classList.add("fallback"); });
     document.querySelectorAll(".h-green").forEach(el => { if (!tileMissing.green) return; el.classList.add("fallback"); });
-    document.querySelectorAll(".h-bait").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
+    document.querySelectorAll(".h-bait-red, .h-bait-black").forEach(el => { if (!tileMissing.bait) return; el.classList.add("fallback"); });
   }
 
   function buildTrack(tiles){
@@ -1058,13 +1254,13 @@
     track.style.transform = `translate3d(-${targetX}px,0,0)`;
   }
 
-  function settleRound(rIdx, winType){
+  function settleRound(rIdx, winType, tileType){
     // Pay out if betSlip was placed for this round
     if (betSlip && betSlip.roundIndex === rIdx){
       if (betSlip.type === winType){
         const payout = clampMoney(betSlip.amount * MULTI[winType]);
         balance = clampMoney(balance + payout);
-        balanceEl.textContent = balance.toFixed(2);
+        updateBalanceDisplay();
         setToast(`WIN! ${winType.toUpperCase()} paid ${payout.toFixed(2)}.`, "good");
       } else {
         setToast(`Lost — ${winType.toUpperCase()} hit.`, "bad");
@@ -1074,7 +1270,7 @@
     }
 
     // update history
-    pushHistory(winType);
+    pushHistory(tileType);
   }
 
   // ---------------------------
@@ -1092,8 +1288,8 @@
       currentRound = rIdx;
       renderBetLists(rIdx);
       // preload a static state
-      const winType = outcomeForRound(rIdx);
-      const { tiles, winAt } = buildWindowForRound(rIdx, winType);
+      const { tileIndex, tileType } = outcomeForRound(rIdx);
+      const { tiles, winAt } = buildWindowForRound(tileIndex);
       buildTrack(tiles);
       // place it already centered (no animation yet)
       const vw = viewport.clientWidth;
@@ -1114,8 +1310,8 @@
       currentRound = rIdx;
       renderBetLists(rIdx);
 
-      const winType = outcomeForRound(rIdx);
-      const { tiles, winAt } = buildWindowForRound(rIdx, winType);
+      const { tileIndex, tileType, outcome } = outcomeForRound(rIdx);
+      const { tiles, winAt } = buildWindowForRound(tileIndex);
       buildTrack(tiles);
 
       // animate
@@ -1125,7 +1321,7 @@
 
       // settle after spin ends
       setTimeout(() => {
-        settleRound(rIdx, winType);
+        settleRound(rIdx, outcome, tileType);
         // keep the track in its final position; next round rebuilds anyway
         spinning = false;
       }, SPIN_MS + 30);
@@ -1139,8 +1335,8 @@
     const now = Date.now();
     const base = roundIndexAt(now);
     for (let i=0;i<12;i++){
-      const t = outcomeForRound(base - i);
-      history.push(t);
+      const { tileType } = outcomeForRound(base - i);
+      history.push(tileType);
     }
     renderHistory();
   })();
@@ -1163,7 +1359,7 @@
       bait: !ok.bait
     };
     applyFallbackClasses();
-    balanceEl.textContent = balance.toFixed(2);
+    updateBalanceDisplay();
     frame();
   });
 
