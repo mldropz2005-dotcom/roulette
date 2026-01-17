@@ -120,6 +120,37 @@
       outline-offset: 2px;
     }
 
+    .balance-pill{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+    .wallet-btn{
+      width:34px;
+      height:34px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(41,227,164,.12);
+      color: var(--green);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(41,227,164,.18);
+    }
+    .wallet-btn svg{ width:18px; height:18px; }
+    .wallet-btn:focus-visible{
+      outline: 2px solid rgba(41,227,164,.45);
+      outline-offset: 2px;
+    }
+
     /* --- MAIN LAYOUT --- */
     .main{
       max-width:1180px;
@@ -981,6 +1012,33 @@
       if (next > max) next = max;
       betAmountEl.value = next.toFixed(2);
     });
+  });
+
+  // wallet / deposit modal
+  function openDeposit(){
+    depositModal.classList.add("show");
+    depositModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeDeposit(){
+    depositModal.classList.remove("show");
+    depositModal.setAttribute("aria-hidden", "true");
+  }
+
+  walletBtn.addEventListener("click", openDeposit);
+  depositClose.addEventListener("click", closeDeposit);
+  depositModal.addEventListener("click", (event) => {
+    if (event.target === depositModal) closeDeposit();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDeposit();
+  });
+
+  freeRefillBtn.addEventListener("click", () => {
+    balance = clampMoney(balance + 1000);
+    updateBalanceDisplay();
+    setToast("Free refill credited: $1,000.", "good");
+    closeDeposit();
   });
 
   // wallet / deposit modal
